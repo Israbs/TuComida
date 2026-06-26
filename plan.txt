@@ -1,0 +1,34 @@
+Rol y Objetivo:
+Actúa como un Arquitecto de Software Senior y experto en desarrollo web. Quiero construir un SaaS B2B (Software as a Service) integral para establecimientos de comida (restaurantes, cafeterías, heladerías). El sistema debe ser multi-tenant, escalable y muy fácil de usar para transformar digitalmente a mis clientes.
+
+Características Principales del Sistema:
+
+Suscripción y Multi-tenant: Los clientes acceden pagando una suscripción. Los datos de cada restaurante deben estar completamente aislados.
+
+Gestión de Inventario Automatizada: El cliente añade productos, categorías y detalles, y estos se reflejan automáticamente en el catálogo público y en el Punto de Venta (POS).
+
+Gestión de Personal (RRHH): Control de turnos, horarios y salarios.
+
+Sistema de Punto de Venta (POS): Interfaz rápida para cajeros.
+
+Presencia en Línea: Generación automática de un catálogo, pedidos en línea y landing page personalizable por el dueño del restaurante.
+
+Pantalla de Cocina (KDS): Despliegue de pedidos en tiempo real para los cocineros.
+
+Gestión de Mesas: Módulo para que los meseros tomen pedidos y asignen mesas.
+
+Roles y Permisos (RBAC): Admin (Dueño), Operador/Cajero (POS), Cocinero (KDS), Mesero (Mesas/Pedidos). Todo altamente personalizable por el Admin.
+
+Lo que necesito de ti ahora mismo:
+
+Sugiéreme el Stack Tecnológico moderno ideal para esto (Ej. Next.js, Node, PostgreSQL, etc.) considerando que necesito rendimiento en tiempo real para la cocina y el POS.
+
+Proponme la arquitectura de la base de datos a alto nivel (cómo separar los datos de cada cliente).
+
+Diseña el árbol de directorios inicial para el proyecto.
+
+Dime cuál es el paso número 1 por el que debemos empezar a programar hoy para sentar las bases correctamente.
+
+No escribas código de implementación todavía, solo entrégame el plan detallado y la estructura.
+
+Se Necesita hacer un prototipo funcional, si bien es una aplicacion que se busca lanzar al publico, en primera instancia, solo debe funcionar en local, y debe ser facilmente compartible con compañeros de desarrollo
