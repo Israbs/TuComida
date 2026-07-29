@@ -26,7 +26,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-8 sm:h-9 items-center justify-center rounded-md bg-brand-surface px-3 sm:px-4 font-semibold text-white transition-colors hover:bg-black/80 whitespace-nowrap"
+            className="inline-flex h-8 sm:h-9 items-center justify-center rounded-md bg-brand-surface/95 px-3 sm:px-4 font-semibold text-white transition-colors hover:text-white/80 whitespace-nowrap"
           >
             Registrarse
           </Link>
@@ -93,7 +93,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Card 1: Proposito */}
-            <div className="flex flex-col bg-brand-surface p-8 rounded-xl border border-white/5 shadow-md">
+            <div className="flex flex-col bg-brand-surface/95 p-8 rounded-2xl border border-white/10 shadow-xl transition-all hover:border-brand-accent/40">
               <h3 className="text-3xl font-bold text-[#FFB400] mb-3">Nuestra Misión</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 En TuComida, creemos que la tecnología no debe ser un obstáculo, sino el ingrediente secreto que impulsa la eficiencia de tu negocio. Nacimos para simplificar la gestión de restaurantes para que puedas crear platos inolvidables y brindar experiencias excepcionales.
@@ -101,16 +101,16 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Vision */}
-            <div className="flex flex-col bg-brand-surface p-8 rounded-xl border border-white/5 shadow-md">
-              <h3 className="text-3xl font-bold text-[#FF5A5F] mb-3">Nuestra Visión</h3>
+            <div className="flex flex-col bg-brand-surface/95 p-8 rounded-2xl border border-white/10 shadow-xl transition-all hover:border-brand-accent/40">
+              <h3 className="text-3xl font-bold text-[#418acf] mb-3">Nuestra Visión</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 Queremos transformar el panorama digital de la gastronomía, eliminando la complejidad técnica para que cualquier restaurante, sin importar su tamaño, pueda contar con herramientas de gestión de clase mundial y competir al más alto nivel.
               </p>
             </div>
 
             {/* Card 3: Por que elegimos este camino */}
-            <div className="flex flex-col bg-brand-surface p-8 rounded-xl border border-white/5 shadow-md">
-              <h3 className="text-3xl font-bold text-[#E0E0E0] mb-3">Por Qué Este Camino</h3>
+            <div className="flex flex-col bg-brand-surface/95 p-8 rounded-2xl border border-white/10 shadow-xl transition-all hover:border-brand-accent/40">
+              <h3 className="text-3xl font-bold text-[#53cfa0] mb-3">Por Qué Este Camino</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 Sabemos que dirigir un restaurante es un desafío constante. Entre el control de inventarios, la gestión de pedidos y la atención al cliente, los procesos manuales suelen consumir el tiempo y la energía que tu negocio necesita para crecer.
               </p>
@@ -120,7 +120,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t px-6 py-6 text-center text-gray-200 bg-brand-surface">
+      <footer className="border-t px-6 py-6 text-center text-gray-200 bg-brand-surface/95">
         &copy; {new Date().getFullYear()} TuComida. Todos los derechos reservados.
       </footer>
     </div>
