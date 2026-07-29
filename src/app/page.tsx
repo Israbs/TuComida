@@ -1,36 +1,55 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#EEEEEE]">
-      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-40 py-6 text-white bg-transparent text-[20px]">
-        <img src="/logo-horizontal.png" alt="Logo TuComida" className=""/>
-        <nav className="flex items-center gap-4">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-20 flex h-16 md:h-20 items-center justify-between px-4 sm:px-8 md:px-20 lg:px-40 text-white bg-transparent">
+        <div className="relative h-8 w-32 sm:h-10 sm:w-40 md:h-12 md:w-48">
+          <Image 
+            src="/logo-horizontal.png" 
+            alt="Logo TuComida" 
+            fill
+            sizes="(max-width: 768px) 128px, 192px"
+            className="object-contain object-left"
+            priority
+          />
+        </div>
+
+        <nav className="flex items-center gap-2 sm:gap-4 text-sm sm:text-base md:text-[20px]">
           <Link
             href="/login"
-            className="font-semibold hover:text-white/90"
+            className="font-semibold text-white transition-colors hover:text-white/80 whitespace-nowrap"
           >
             Iniciar Sesión
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-9 items-center justify-center rounded-md text-white bg-black px-4 font-semibold hover:text-white/90"
+            className="inline-flex h-8 sm:h-9 items-center justify-center rounded-md bg-black px-3 sm:px-4 font-semibold text-white transition-colors hover:bg-black/80 whitespace-nowrap"
           >
             Registrarse
           </Link>
         </nav>
       </header>
 
-      <section className="relative flex flex-1 flex-col items-center justify-center px-6 py-40 text-center overflow-hidden">
+      {/* Hero */}
+      <section className="relative flex flex-1 flex-col items-center justify-center px-4 sm:px-6 pt-24 pb-16 md:py-40 text-center overflow-hidden">
   
         {/* Imagen de fondo */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/restaurant-banner.jpg')" }}
-        />
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/restaurant-banner.jpg"
+            alt="Fondo Restaurante"
+            fill
+            priority
+            sizes="(max-width: 768px) 128px, 192px"
+            className="object-cover object-center"
+          />
+        </div>
 
         {/* Capa Oscura */}
-        <div className="absolute inset-0 bg-black/50"/>
+        <div className="absolute inset-0 bg-black/50 z-0"/>
 
         {/* Contenido */}
         <div className="relative z-10 flex max-w-3xl flex-col items-center rounded-2xl border border-white/10 bg-black/40 p-8 text-gray-200 backdrop-blur-md sm:p-12">
@@ -59,7 +78,7 @@ export default function LandingPage() {
 
       </section>
         
-      {/* Seccon: Sobre Nosotros */}
+      {/* Seccion: Sobre Nosotros */}
       <section className="relative bg-[#EEEEEE] px-6 py-12 md:px-40 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -70,6 +89,7 @@ export default function LandingPage() {
             <div className="h-1 w-20 bg-[#0f0806] mx-auto mt-4 rounded"></div>
           </div>
 
+          {/* Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Card 1: Proposito */}
@@ -95,8 +115,8 @@ export default function LandingPage() {
                 Sabemos que dirigir un restaurante es un desafío constante. Entre el control de inventarios, la gestión de pedidos y la atención al cliente, los procesos manuales suelen consumir el tiempo y la energía que tu negocio necesita para crecer.
               </p>
             </div>
-
           </div>
+
         </div>
       </section>
 

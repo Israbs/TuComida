@@ -37,8 +37,8 @@ export default function InventoryPage() {
   const [tab, setTab] = useState<Tab>("products");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 space-y-6 bg-[#EEEEEE]">
+      <div className="flex items-center justify-between text-black">
         <h1 className="text-2xl font-bold">Inventario</h1>
         <div className="flex gap-2">
           <Button
@@ -132,13 +132,13 @@ function ProductList() {
     }
   };
 
-  if (isLoading) return <p className="text-muted-foreground">Cargando...</p>;
+  if (isLoading) return <p className="text-black">Cargando...</p>;
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer")}>
+          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] text-white")}>
             Nuevo Producto
           </DialogTrigger>
           <DialogContent>
@@ -146,7 +146,7 @@ function ProductList() {
               <DialogTitle>{editing ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2 ">
                 <label htmlFor="prod-name" className="text-sm font-medium">Nombre</label>
                 <Input id="prod-name" name="name" value={formName} onChange={(e) => setFormName(e.target.value)} required />
               </div>
@@ -189,25 +189,25 @@ function ProductList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Precio</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
+            <TableHead className="text-black">Nombre</TableHead>
+            <TableHead className="text-black">Categoría</TableHead>
+            <TableHead className="text-black">Precio</TableHead>
+            <TableHead className="text-black">Estado</TableHead>
+            <TableHead className="text-right text-black">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products?.map((p) => (
             <TableRow key={p.id}>
-              <TableCell className="font-medium">{p.name}</TableCell>
-              <TableCell>{p.category.name}</TableCell>
-              <TableCell>${p.price.toFixed(2)}</TableCell>
+              <TableCell className="font-medium text-black">{p.name}</TableCell>
+              <TableCell className="text-black">{p.category.name}</TableCell>
+              <TableCell className="text-black">${p.price.toFixed(2)}</TableCell>
               <TableCell>
                 <Badge variant={p.isActive ? "default" : "secondary"}>
                   {p.isActive ? "Activo" : "Inactivo"}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right space-x-2">
+              <TableCell className="text-right space-x-2 text-black">
                 <Button variant="outline" size="sm" onClick={() => openEdit(p.id)}>
                   Editar
                 </Button>
@@ -301,7 +301,7 @@ function CategoryList() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer")}>
+          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] text-white")}>
             Nueva Categoría
           </DialogTrigger>
           <DialogContent>
@@ -337,21 +337,21 @@ function CategoryList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead>Orden</TableHead>
-            <TableHead>Productos</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
+            <TableHead className="text-black">Nombre</TableHead>
+            <TableHead className="text-black">Descripción</TableHead>
+            <TableHead className="text-black">Orden</TableHead>
+            <TableHead className="text-black">Productos</TableHead>
+            <TableHead className="text-right text-black">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {categories?.map((c) => (
             <TableRow key={c.id}>
-              <TableCell className="font-medium">{c.name}</TableCell>
-              <TableCell>{c.description ?? "-"}</TableCell>
-              <TableCell>{c.sortOrder}</TableCell>
-              <TableCell>{c._count.products}</TableCell>
-              <TableCell className="text-right space-x-2">
+              <TableCell className="font-medium text-black">{c.name}</TableCell>
+              <TableCell className="text-black">{c.description ?? "-"}</TableCell>
+              <TableCell className="text-black">{c.sortOrder}</TableCell>
+              <TableCell className="text-black">{c._count.products}</TableCell>
+              <TableCell className="text-right space-x-2 text-black">
                 <Button variant="outline" size="sm" onClick={() => openEdit(c.id)}>
                   Editar
                 </Button>
