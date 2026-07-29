@@ -1,21 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Configuración de la fuente
+const outfit = Outfit({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-outfit",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "TuComida - SaaS para Restaurantes",
   description: "Sistema integral de gestión para restaurantes, cafeterías y heladerías",
+  icons: {
+    icon: "/logo-blanco-128px.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,9 +28,9 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${outfit.className} h-full antialiased`}
     >
-      <body className="min-h-full">
+      <body className="min-h-full bg-[#181818] text-white">
         <Providers>{children}</Providers>
       </body>
     </html>

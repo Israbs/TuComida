@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 bg-gradient-to-br from-[#332013] via-[#0f0a07] to-[#21140c] overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center px-4 bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] overflow-hidden">
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-black/40 p-8 text-white backdrop-blur-md sm:p-10 shadow-2xl space-y-6">
         <div className="text-cente">
           <img src="/logo-blanco.png" alt="Logo TuComida" className="mx-auto w-23 h-15" />
@@ -80,7 +80,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50 cursor-pointer"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
