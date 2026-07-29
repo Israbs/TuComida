@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#E0E0E0]">
+    <div className="flex min-h-screen flex-col bg-[#EEEEEE]">
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-40 py-6 text-white bg-transparent text-[20px]">
         <img src="/logo-horizontal.png" alt="Logo TuComida" className=""/>
         <nav className="flex items-center gap-4">
@@ -59,8 +59,8 @@ export default function LandingPage() {
 
       </section>
         
-      {/* Sección: Sobre Nosotros (Diseño en cuadrícula estilo industrial) */}
-      <section className="relative bg-white px-6 py-12 md:px-40 border-t border-white/5">
+      {/* Seccon: Sobre Nosotros */}
+      <section className="relative bg-[#EEEEEE] px-6 py-12 md:px-40 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-black text-sm font-bold tracking-widest uppercase">Conócenos más</span>
@@ -73,7 +73,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Card 1: Proposito */}
-            <div className="flex flex-col bg-[#1A110A] p-8 rounded-xl border border-white/5 shadow-md">
+            <div className="flex flex-col bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] p-8 rounded-xl border border-white/5 shadow-md">
               <h3 className="text-3xl font-bold text-[#FFB400] mb-3">Nuestra Misión</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 En TuComida, creemos que la tecnología no debe ser un obstáculo, sino el ingrediente secreto que impulsa la eficiencia de tu negocio. Nacimos para simplificar la gestión de restaurantes para que puedas crear platos inolvidables y brindar experiencias excepcionales.
@@ -81,7 +81,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Vision */}
-            <div className="flex flex-col bg-[#1A110A] p-8 rounded-xl border border-white/5 shadow-md">
+            <div className="flex flex-col bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] p-8 rounded-xl border border-white/5 shadow-md">
               <h3 className="text-3xl font-bold text-[#FF5A5F] mb-3">Nuestra Visión</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 Queremos transformar el panorama digital de la gastronomía, eliminando la complejidad técnica para que cualquier restaurante, sin importar su tamaño, pueda contar con herramientas de gestión de clase mundial y competir al más alto nivel.
@@ -89,7 +89,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3: Por que elegimos este camino */}
-            <div className="flex flex-col bg-[#1A110A] p-8 rounded-xl border border-white/5 shadow-md">
+            <div className="flex flex-col bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] p-8 rounded-xl border border-white/5 shadow-md">
               <h3 className="text-3xl font-bold text-[#E0E0E0] mb-3">Por Qué Este Camino</h3>
               <p className="text-gray-200 text-[18px] leading-relaxed">
                 Sabemos que dirigir un restaurante es un desafío constante. Entre el control de inventarios, la gestión de pedidos y la atención al cliente, los procesos manuales suelen consumir el tiempo y la energía que tu negocio necesita para crecer.
@@ -100,7 +100,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t px-6 py-6 text-center text-gray-200 bg-[#1A110A]">
+      <footer className="border-t px-6 py-6 text-center text-gray-200 bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c]">
         &copy; {new Date().getFullYear()} TuComida. Todos los derechos reservados.
       </footer>
     </div>

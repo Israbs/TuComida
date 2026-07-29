@@ -2,10 +2,7 @@ import {
   TrendingUp, 
   ShoppingBag, 
   Utensils, 
-  Grid, 
-  ArrowUpRight,
-  Clock,
-  ChevronRight
+  Grid
 } from "lucide-react";
 
 export default async function DashboardPage() {
