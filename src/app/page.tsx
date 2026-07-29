@@ -11,8 +11,7 @@ export default function LandingPage() {
             src="/logo-horizontal.png" 
             alt="Logo TuComida" 
             fill
-            quality={100}
-            sizes="100vw"
+            sizes="(max-width: 768px) 150px, 200px"
             className="object-contain object-left"
             priority
           />
@@ -44,7 +43,6 @@ export default function LandingPage() {
             alt="Fondo Restaurante"
             fill
             priority
-            quality={100}
             sizes="100vw"
             className="object-cover object-center"
           />
