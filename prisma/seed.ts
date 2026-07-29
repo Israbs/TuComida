@@ -23,10 +23,10 @@ async function main() {
   const waiterPassword = await bcrypt.hash("mesero123", 10);
 
   const users = [
-    { email: "admin@demo.com", name: "Admin Demo", password: adminPassword, role: "ADMIN" as const },
-    { email: "cajero@demo.com", name: "Cajero Demo", password: cashierPassword, role: "CASHIER" as const },
-    { email: "cocinero@demo.com", name: "Cocinero Demo", password: cookPassword, role: "COOK" as const },
-    { email: "mesero@demo.com", name: "Mesero Demo", password: waiterPassword, role: "WAITER" as const },
+    { email: "admin@demo.com", name: "Admin Demo", passwordHash: adminPassword, role: "ADMIN" as const },
+    { email: "cajero@demo.com", name: "Cajero Demo", passwordHash: cashierPassword, role: "CASHIER" as const },
+    { email: "cocinero@demo.com", name: "Cocinero Demo", passwordHash: cookPassword, role: "COOK" as const },
+    { email: "mesero@demo.com", name: "Mesero Demo", passwordHash: waiterPassword, role: "WAITER" as const },
   ];
 
   for (const u of users) {

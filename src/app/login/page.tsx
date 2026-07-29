@@ -35,11 +35,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">TuComida</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+    <div className="relative flex min-h-screen items-center justify-center px-4 bg-gradient-to-br from-[#332013] via-[#0f0a07] to-[#21140c] overflow-hidden">
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-black/40 p-8 text-white backdrop-blur-md sm:p-10 shadow-2xl space-y-6">
+        <div className="text-cente">
+          <img src="/logo-blanco.png" alt="Logo TuComida" className="mx-auto w-23 h-15" />
+          <p className="mt-2 text-sm text-center text-white">
             Inicia sesión en tu cuenta
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-white">
           ¿No tienes cuenta?{" "}
           <Link href="/login" className="font-medium underline underline-offset-4 hover:text-foreground">
             Registrate
