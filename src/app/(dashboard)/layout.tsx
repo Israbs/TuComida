@@ -34,7 +34,7 @@ export default async function DashboardLayout({
   ];
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c]">
+    <div className="relative flex h-screen overflow-hidden bg-brand-gradient">
       {/* Panel Lateral Aside */}
       <aside className="hidden md:flex w-64 flex-col justify-between bg-transparent h-full">
         <div>

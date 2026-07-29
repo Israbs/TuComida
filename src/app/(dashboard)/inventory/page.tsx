@@ -43,12 +43,22 @@ export default function InventoryPage() {
         <div className="flex gap-2">
           <Button
             variant={tab === "products" ? "default" : "outline"}
+            className={cn(
+              tab === "products"
+                ? "bg-brand-surface/90 text-white border-transparent hover:bg-brand-surface/90 hover:text-white"
+                : "text-black border-black/20 hover:bg-black/10 hover:text-black"
+            )}
             onClick={() => setTab("products")}
           >
             Productos
           </Button>
           <Button
             variant={tab === "categories" ? "default" : "outline"}
+            className={cn(
+              tab === "categories"
+                ? "bg-brand-surface/90 text-white border-transparent hover:bg-brand-surface/90 hover:text-white"
+                : "text-black border-black/20 hover:bg-black/10 hover:text-black"
+            )}
             onClick={() => setTab("categories")}
           >
             Categorías
@@ -138,10 +148,10 @@ function ProductList() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] text-white")}>
+          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-brand-surface/90 text-white")}>
             Nuevo Producto
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className={"bg-[#221B17]"}>
             <DialogHeader>
               <DialogTitle>{editing ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
             </DialogHeader>
@@ -203,7 +213,13 @@ function ProductList() {
               <TableCell className="text-black">{p.category.name}</TableCell>
               <TableCell className="text-black">${p.price.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge variant={p.isActive ? "default" : "secondary"}>
+                <Badge
+                  className={cn(
+                    p.isActive
+                      ? "bg-transparent text-black border-transparent"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  )}
+                >
                   {p.isActive ? "Activo" : "Inactivo"}
                 </Badge>
               </TableCell>
@@ -301,10 +317,10 @@ function CategoryList() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] text-white")}>
+          <DialogTrigger className={cn(buttonVariants(), "cursor-pointer bg-brand-surface/90 text-white")}>
             Nueva Categoría
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className={"bg-[#221B17]"}>
             <DialogHeader>
               <DialogTitle>{editing ? "Editar Categoría" : "Nueva Categoría"}</DialogTitle>
             </DialogHeader>

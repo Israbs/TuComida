@@ -46,7 +46,7 @@ export function MobileMenu() {
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="relative z-10 flex w-64 flex-col justify-between bg-[#1d120a] p-4 text-[#EEEEEE] shadow-xl border-r border-white/10">
+          <div className="relative z-10 flex w-64 flex-col justify-between bg-brand-surface/30 p-4 text-[#EEEEEE] shadow-xl border-r border-white/10">
             <div>
               <div className="flex items-center justify-between h-16 border-b border-white/10 pb-2">
                 <Link

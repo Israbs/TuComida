@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 bg-linear-to-br from-[#332013] via-[#0f0a07] to-[#21140c] overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center px-4 bg-brand-gradient overflow-hidden">
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-black/40 p-8 text-white backdrop-blur-md sm:p-10 shadow-2xl space-y-6">
         <div className="text-cente">
           <img src="/logo-blanco.png" alt="Logo TuComida" className="mx-auto w-23 h-15" />
