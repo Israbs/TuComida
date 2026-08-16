@@ -1,6 +1,21 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { canAccess, roleHome } from "@/lib/access";
+import { prisma } from "@/lib/prisma";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { SessionExtender } from "@/components/session-extender";
+
+const allSections = [
+  { href: "/mi-jornada", label: "Mi Jornada" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/attendance", label: "Asistencias" },
+  { href: "/pos", label: "POS" },
+  { href: "/kds", label: "Cocina" },
+  { href: "/inventory", label: "Inventario" },
+  { href: "/hr", label: "Personal" },
+  { href: "/tables", label: "Mesas" },
+  { href: "/catalog", label: "Catálogo" },
+];
 
 export default async function DashboardLayout({
   children,
@@ -13,49 +28,23 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/pos", label: "POS" },
-    { href: "/kds", label: "Cocina" },
-    { href: "/inventory", label: "Inventario" },
-    { href: "/hr", label: "Personal" },
-    { href: "/tables", label: "Mesas" },
-  ];
+  const role = session.user.role;
+  const navItems = allSections.filter((item) => canAccess(role, item.href));
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { slug: true },
+  });
 
   return (
-    <div className="flex h-screen">
-      <aside className="flex w-64 flex-col border-r bg-background">
-        <div className="flex h-14 items-center border-b px-6">
-          <Link href="/dashboard" className="text-lg font-bold">
-            TuComida
-          </Link>
-        </div>
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="border-t p-4">
-          <p className="text-sm text-muted-foreground">
-            {session.user.name}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {session.user.email}
-          </p>
-        </div>
-      </aside>
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center justify-between border-b px-6">
-          <h2 className="text-lg font-semibold">Bienvenido, {session.user.name}</h2>
-        </header>
-        <div className="flex-1 overflow-auto p-6">{children}</div>
-      </main>
-    </div>
+    <DashboardShell
+      navItems={navItems}
+      user={{ name: session.user.name, email: session.user.email }}
+      homeHref={roleHome[role]}
+      catalogHref={tenant ? `/c/${tenant.slug}` : undefined}
+    >
+      {children}
+      <SessionExtender />
+    </DashboardShell>
   );
 }

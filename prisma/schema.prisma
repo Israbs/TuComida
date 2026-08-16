@@ -14,36 +14,65 @@ enum UserRole {
   WAITER
 }
 
+enum SubscriptionPlan {
+  STARTER
+  GROWTH
+  SCALE
+}
+
+model Subscription {
+  id               String           @id @default(cuid())
+  tenantId         String           @unique
+  plan             SubscriptionPlan @default(STARTER)
+  billingCycle     String           @default("monthly")
+  status           String           @default("active")
+  currentPeriodEnd DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  attendanceSecret String?
+  orderCounter     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   users        User[]
   categories   Category[]
   products     Product[]
+  ingredients  Ingredient[]
+  addons       Addon[]
   orders       Order[]
   tables       Table[]
-  shifts       Shift[]
+  attendances  Attendance[]
+  employees    Employee[]
+  subscription Subscription?
 }
 
 model User {
-  id             String   @id @default(cuid())
-  tenantId       String
-  name           String
-  email          String   @unique
-  passwordHash   String
-  role           UserRole @default(ADMIN)
-  emailVerified  DateTime?
-  image          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  tenantId            String
+  name                String
+  email               String    @unique
+  passwordHash        String?
+  role                UserRole  @default(ADMIN)
+  emailVerified       DateTime?
+  image               String?
+  inviteToken         String?   @unique
+  inviteTokenExpiresAt DateTime?
+  invitedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orders         Order[]
-  shifts         Shift[]
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders              Order[]
+  attendances         Attendance[]
+  employee            Employee?
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -71,7 +100,7 @@ model Product {
   categoryId  String
   name        String
   description String?
-  price       Float
+  priceCents  Int      @default(0)
   image       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -80,9 +109,66 @@ model Product {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category    Category @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
+  ingredients Ingredient[]
+  addons      Addon[]
 
   @@index([tenantId])
   @@index([categoryId])
+}
+
+model Ingredient {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+}
+
+model Addon {
+  id         String   @id @default(cuid())
+  tenantId   String
+  productId  String
+  name       String
+  priceCents Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+}
+
+model Employee {
+  id              String    @id @default(cuid())
+  tenantId        String
+  userId          String?   @unique
+  name            String
+  email           String    @unique
+  role            UserRole
+  phone           String?
+  photoUrl        String?
+  idDocUrl        String?
+  contractEnd     DateTime?
+  hourlyRateCents Int       @default(0)
+  startDate       DateTime?
+  schedule        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
 }
 
 model Table {
@@ -119,13 +205,17 @@ enum OrderOrigin {
 model Order {
   id           String      @id @default(cuid())
   tenantId     String
+  number       Int         @default(0)
   tableId      String?
   userId       String?
   customerName String?
   status       OrderStatus @default(PENDING)
   origin       OrderOrigin @default(POS)
-  total        Float
+  totalCents   Int         @default(0)
   notes        String?
+  paidAt       DateTime?
+  preparingAt  DateTime?
+  readyAt      DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -139,12 +229,14 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  unitPrice Float
-  notes     String?
+  id                 String   @id @default(cuid())
+  orderId            String
+  productId          String
+  quantity           Int
+  unitPriceCents     Int
+  addons             Json?
+  removedIngredients Json?
+  notes              String?
   createdAt DateTime @default(now())
 
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -153,19 +245,23 @@ model OrderItem {
   @@index([orderId])
 }
 
-model Shift {
-  id         String   @id @default(cuid())
+model Attendance {
+  id         String    @id @default(cuid())
   tenantId   String
   userId     String
-  startTime  DateTime
-  endTime    DateTime?
+  clockIn    DateTime
+  clockOut   DateTime?
   hourlyRate Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  source     String    @default("employee")
+  adjustedBy String?
+  adjustedAt DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
-  @@index([userId])
+  @@index([userId, clockIn])
 }

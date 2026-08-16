@@ -48,14 +48,18 @@ SaaS B2B para restaurantes, cafeterías y heladerías. Multi-tenant, tiempo real
 npm install
 
 # Sincronizar DB y cargar datos demo
-npx tsx node_modules/prisma/build/index.js db push
-npx tsx prisma/seed.ts
+npx prisma db push
+npm run db:seed
 
-# Iniciar servidor de desarrollo
+# Iniciar servidor de desarrollo (HTTP + Socket.IO en un solo proceso)
 npm run dev
 ```
 
 Abrir `http://localhost:3000`
+
+> ⚠️ Si tenías un `next dev` anterior corriendo, deténlo primero
+> (`taskkill /PID <pid> /F`) — el proyecto ahora usa un custom server
+> (`server.ts`) que levanta Next.js + Socket.IO en el mismo proceso.
 
 ## Usuarios de prueba
 
@@ -101,12 +105,18 @@ tucomida/
 │   │   └── routers/
 │   │       └── inventory.ts   # CRUD categorías y productos
 │   ├── components/
-│   │   ├── providers.tsx      # SessionProvider + TRPCProvider + Theme
+│   │   ├── providers.tsx      # SessionProvider + TRPCProvider + Theme + Socket
+│   │   ├── socket-provider.tsx# Conexión Socket.IO del cliente (auth por sesión)
 │   │   └── ui/                # shadcn/ui (button, dialog, table, select,
 │   │                          #   input, textarea, badge, card, sonner, etc.)
+│   ├── hooks/
+│   │   └── use-socket-event.ts# Suscribirse a eventos Socket.IO e invalidar queries
+│   ├── lib/
+│   │   └── socket.ts          # Singleton io + emitToTenant (lado servidor)
 │   ├── proxy.ts               # Edge middleware (protección de rutas)
 │   └── types/
 │       └── next-auth.d.ts     # Tipos extendidos de sesión
+├── server.ts                  # Custom server: Next.js + Socket.IO (auth + rooms)
 ├── docker-compose.yml         # PostgreSQL (producción)
 ├── prisma.config.ts           # Configuración Prisma 7
 └── package.json
@@ -132,8 +142,18 @@ Todos los modelos multi-tenant tienen `tenantId` y filtran automáticamente por 
 1. **Proxy** (`src/proxy.ts`) corre primero. Verifica cookie JWT. Si no hay, redirige a `/login`.
 2. **Dashboard layout** (`(dashboard)/layout.tsx`) verifica sesión con `auth()` de Auth.js.
 3. **Páginas interactivas** (`"use client"`) usan hooks de `@trpc/react-query` para llamar al servidor.
-4. **tRPC** recibe la petición, el middleware `protectedProcedure` verifica la sesión e inyecta `ctx.user` con `tenantId`.
+4. **tRPC** recibe la petición, el middleware `protectedProcedure` verifica la sesión e inyecta `ctx.user` con `tenantId`. Las mutaciones de inventario usan `adminProcedure` (solo rol `ADMIN`).
 5. **Prisma** ejecuta la query filtrada por `tenantId`.
+6. **Tiempo real** — las mutaciones emiten eventos con `emitToTenant(tenantId, ...)` a la room `tenant:{id}` de Socket.IO. Los clientes conectados (`SocketProvider` + hook `useSocketEvent`) los reciben al instante e invalidan React Query.
+
+## Tiempo real (Socket.IO)
+
+La app corre con un **custom server** (`server.ts`) que levanta Next.js y Socket.IO en el mismo proceso (un solo puerto, latencia mínima).
+
+- Cada sesión se autentica en el handshake decodificando el JWE de Auth.js (`decode` de `next-auth/jwt` con el `salt` = nombre de la cookie).
+- Cada socket entra a la room **`tenant:{id}`**, aislando por completo los datos entre clientes.
+- Patrón para pedidos: mutación tRPC escribe en DB → `emitToTenant` → los clientes del mismo tenant (KDS, meseros, POS) reciben el evento y refrescan la UI en <100ms.
+- En producción con varios servidores se añade el adapter de Redis (`@socket.io/redis-adapter`) y se usa PostgreSQL.
 
 ## Estado del proyecto
 
@@ -142,13 +162,15 @@ Todos los modelos multi-tenant tienen `tenantId` y filtran automáticamente por 
 | Módulo | Funcionalidad |
 |---|---|
 | Autenticación | Login con email/contraseña, JWT, 4 roles |
-| Multi-tenant | Aislamiento de datos por tenantId |
-| Proxy/Middleware | Protección de rutas del dashboard |
-| Dashboard | Layout con sidebar, cards de estadísticas |
-| Inventario | CRUD productos + categorías con modales y validación |
+| RBAC | Mutaciones de inventario restringidas a rol `ADMIN` (`adminProcedure`) |
+| Multi-tenant | Aislamiento de datos por tenantId + rooms de Socket.IO por tenant |
+| Proxy/Middleware | Protección de rutas del dashboard (incluye cookie segura `__Secure-authjs.session-token`) |
+| Dashboard | Estadísticas reales: ventas/órdenes de hoy, órdenes abiertas, productos |
+| Inventario | CRUD productos + categorías con modales, validación, guardas FK y precios en centavos |
+| Tiempo real | Custom server `server.ts` (Next + Socket.IO), auth JWE en handshake, `emitToTenant` |
 | API | tRPC v11 con router organizado y procedimientos protegidos |
 | UI | Componentes shadcn/ui (tabla, diálogo, select, toasts, etc.) |
-| Base de datos | Schema completo con 8 modelos, seed con datos demo |
+| Base de datos | Schema completo con 8 modelos, seed con datos demo. Precios en `*Cents` (Int) |
 
 ### Por implementar 🚧
 
@@ -167,9 +189,9 @@ Todos los modelos multi-tenant tienen `tenantId` y filtran automáticamente por 
 ## Comandos disponibles
 
 ```bash
-npm run dev          # Iniciar servidor de desarrollo
+npm run dev          # Iniciar servidor de desarrollo (Next + Socket.IO, tsx server.ts)
 npm run build        # Build de producción + type check
-npm run start        # Iniciar servidor de producción
+npm run start        # Iniciar servidor de producción (NODE_ENV=production tsx server.ts)
 npm run lint         # ESLint
 npm run db:generate  # Generar Prisma Client
 npm run db:seed      # Poblar DB con datos demo

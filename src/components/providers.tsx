@@ -5,6 +5,7 @@ import { httpBatchLink } from "@trpc/client";
 import { api } from "@/trpc/client";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
+import { SocketProvider } from "@/components/socket-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
@@ -25,21 +26,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <api.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
+      <SocketProvider>
+        <api.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
           >
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </api.Provider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </api.Provider>
+      </SocketProvider>
     </SessionProvider>
   );
 }

@@ -1,38 +1,18 @@
-"use client";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { roleHome } from "@/lib/access";
+import { loginAction } from "./actions";
+import { LoginSubmitButton } from "@/components/login-submit-button";
 
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Link from "next/link";
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const session = await auth();
+  if (session?.user) redirect(roleHome[session.user.role]);
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const form = new FormData(e.currentTarget);
-    const email = form.get("email") as string;
-    const password = form.get("password") as string;
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError("Credenciales inválidas");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
-  };
+  const { error } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -44,7 +24,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={loginAction} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email
@@ -54,6 +34,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
+              autoComplete="email"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               placeholder="correo@ejemplo.com"
             />
@@ -68,29 +49,21 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
+              autoComplete="current-password"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <p className="text-sm text-red-500">Credenciales inválidas</p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
-          >
-            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-          </button>
+          <LoginSubmitButton />
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          ¿No tienes cuenta?{" "}
-          <Link href="/login" className="font-medium underline underline-offset-4 hover:text-foreground">
-            Registrate
-          </Link>
+          El registro de nuevos establecimientos estará disponible próximamente.
         </p>
       </div>
     </div>

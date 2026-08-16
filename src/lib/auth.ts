@@ -5,8 +5,20 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    // Sesión corta: el usuario debe volver a loguearse cada X horas.
+    // Configurable con SESSION_MAX_AGE_HOURS (por defecto 12).
+    maxAge:
+      (Number.isFinite(Number(process.env.SESSION_MAX_AGE_HOURS)) &&
+        Number(process.env.SESSION_MAX_AGE_HOURS) > 0
+        ? Number(process.env.SESSION_MAX_AGE_HOURS)
+        : 12) *
+      60 *
+      60,
+  },
   pages: {
     signIn: "/login",
   },
@@ -29,6 +41,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user) return null;
 
+        if (!user.passwordHash) return null;
+
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) return null;
 
@@ -46,10 +60,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.tenantId = user.tenantId;
-        token.tenantSlug = user.tenantSlug;
+        if (user.id) token.id = user.id;
+        if (user.role) token.role = user.role;
+        if (user.tenantId) token.tenantId = user.tenantId;
+        if (user.tenantSlug) token.tenantSlug = user.tenantSlug;
+        return token;
+      }
+      // Token existente: validar que el usuario siga existiendo en la base.
+      // Si fue borrado o el tenant fue recreado (ej: reseed), se invalida la sesión.
+      if (token.sub) {
+        const existing = await prisma.user.findUnique({
+          where: { id: token.sub as string },
+          select: { id: true },
+        });
+        if (!existing) return {} as typeof token;
       }
       return token;
     },
