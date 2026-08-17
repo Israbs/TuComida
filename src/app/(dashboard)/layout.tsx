@@ -29,12 +29,16 @@ export default async function DashboardLayout({
   }
 
   const role = session.user.role;
+  const tenantId = session.user.tenantId
+
   const navItems = allSections.filter((item) => canAccess(role, item.href));
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: session.user.tenantId },
-    select: { slug: true },
-  });
+  const tenant = tenantId
+    ? await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { slug: true },
+      })
+    : null;
 
   return (
     <DashboardShell

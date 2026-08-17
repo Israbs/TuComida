@@ -176,6 +176,9 @@ model Table {
   tenantId  String
   number    Int
   name      String?
+  capacity  Int      @default(4)
+  posX      Int      @default(0)
+  posY      Int      @default(0)
   qrCode    String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

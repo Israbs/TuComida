@@ -277,7 +277,7 @@ export default function POSPage() {
             ))}
           </div>
 
-          {tab === "order" ? (
+          {tab === "order" ? (  
             <CartPanel
               items={items}
               tables={(tables ?? []).map((t) => ({

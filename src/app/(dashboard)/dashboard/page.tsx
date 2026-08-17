@@ -7,8 +7,13 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (session.user.role !== "ADMIN") redirect(roleHome[session.user.role]);
-
+  
   const tenantId = session.user.tenantId;
+
+  if (!tenantId) {
+    redirect("/login");
+  }
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
