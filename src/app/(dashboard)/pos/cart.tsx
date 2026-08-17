@@ -133,6 +133,7 @@ export function CartPanel({
   onRemoveItem,
   onClear,
   onSubmit,
+  hideTableSelect = false,
 }: {
   items: CartItem[];
   tables: TableInfo[];
@@ -147,6 +148,7 @@ export function CartPanel({
   onRemoveItem: (key: string) => void;
   onClear: () => void;
   onSubmit: (payNow: boolean) => void;
+  hideTableSelect?: boolean;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -171,37 +173,53 @@ export function CartPanel({
         )}
       </div>
 
-      <div className="grid gap-2 border-b bg-muted/30 p-3 sm:grid-cols-[1fr_1fr]">
-        <div>
-          <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Mesa
-          </label>
-          <select
-            value={tableId}
-            onChange={(e) => onTableChange(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <option value="">Para llevar</option>
-            {tables.map((t) => (
-              <option key={t.id} value={t.id}>
-                Mesa {t.number}
-                {t.name ? ` · ${t.name}` : ""}
-              </option>
-            ))}
-          </select>
+      {!hideTableSelect ? (
+        <div className="grid gap-2 border-b bg-muted/30 p-3 sm:grid-cols-[1fr_1fr]">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Mesa
+            </label>
+            <select
+              value={tableId}
+              onChange={(e) => onTableChange(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="">Para llevar</option>
+              {tables.map((t) => (
+                <option key={t.id} value={t.id}>
+                  Mesa {t.number}
+                  {t.name ? ` · ${t.name}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Cliente
+            </label>
+            <Input
+              value={customerName}
+              onChange={(e) => onCustomerChange(e.target.value)}
+              placeholder="Nombre (opcional)"
+              className="h-9"
+            />
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Cliente
-          </label>
-          <Input
-            value={customerName}
-            onChange={(e) => onCustomerChange(e.target.value)}
-            placeholder="Nombre (opcional)"
-            className="h-9"
-          />
+      ) : (
+        <div className="grid gap-2 border-b bg-muted/30 p-3 sm:grid-cols-[1fr_1fr]">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Cliente
+            </label>
+            <Input
+              value={customerName}
+              onChange={(e) => onCustomerChange(e.target.value)}
+              placeholder="Nombre (opcional)"
+              className="h-9"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         {items.length === 0 ? (

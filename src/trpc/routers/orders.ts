@@ -254,12 +254,167 @@ export const ordersRouter = router({
   }),
 
   /* ───── Mesas activas (POS) ───── */
-
   getTables: protectedProcedure.query(async ({ ctx }) => {
-    return prisma.table.findMany({
+    const tables = await prisma.table.findMany({
       where: { tenantId: ctx.user.tenantId, isActive: true },
       orderBy: { number: "asc" },
-      select: { id: true, number: true, name: true },
+      include: {
+        orders: {
+          where: {
+            paidAt: null,
+            status: { not: "CANCELLED" },
+          },
+          select: {
+            id: true,
+            totalCents: true,
+          },
+        },
+      },
+    });
+
+    return tables.map((t) => {
+      const activeOrders = t.orders;
+      const isOccupied = activeOrders.length > 0;
+      const currentTotalCents = activeOrders.reduce((sum, o) => sum + o.totalCents, 0);
+
+      return {
+        id: t.id,
+        number: t.number,
+        name: t.name,
+        capacity: t.capacity,
+        posX: t.posX,
+        posY: t.posY,
+        qrCode: t.qrCode,
+        status: isOccupied ? ("OCCUPIED" as const) : ("FREE" as const),
+        currentTotal: (currentTotalCents / 100).toFixed(2),
+        activeOrderIds: activeOrders.map((o) => o.id),
+      };
     });
   }),
+
+  /* ───── CREAR MESA ───── */
+
+  createTable: protectedProcedure
+  .input(
+    z.object({
+      number: z.number().int().positive().optional(),
+      name: z.string().optional(),
+      capacity: z.number().int().min(1).default(4),
+      posX: z.number().int().default(0),
+      posY: z.number().int().default(0),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    requireServiceRole(ctx.user.role);
+    const tenantId = ctx.user.tenantId;
+
+    // Obtener los números de todas las mesas activas y ver huecos libres
+    const activeTables = await prisma.table.findMany({
+      where: { tenantId, isActive: true },
+      select: { number: true },
+      orderBy: { number: "asc" },
+    });
+
+    const activeNumbers = new Set(activeTables.map((t) => t.number));
+
+    let targetNumber = input.number;
+
+    if (!targetNumber || activeNumbers.has(targetNumber)) {
+      let nextAvailable = 1;
+      while (activeNumbers.has(nextAvailable)) {
+        nextAvailable++;
+      }
+      targetNumber = nextAvailable;
+    }
+
+    // Verificamos si existe
+    const existingTable = await prisma.table.findUnique({
+      where: {
+        tenantId_number: {
+          tenantId,
+          number: targetNumber,
+        },
+      },
+    });
+
+    // reactivamos antigua inactiva
+    if (existingTable) {
+      const reactivatedTable = await prisma.table.update({
+        where: { id: existingTable.id },
+        data: {
+          isActive: true,
+          name: input.name?.trim() || null,
+          capacity: input.capacity,
+          posX: input.posX,
+          posY: input.posY,
+        },
+      });
+
+      emitToTenant(tenantId, "tables:changed", { type: "table:created" });
+      return reactivatedTable;
+    }
+    
+    const newTable = await prisma.table.create({
+      data: {
+        tenantId,
+        number: targetNumber,
+        name: input.name?.trim() || null,
+        capacity: input.capacity,
+        posX: input.posX,
+        posY: input.posY,
+        isActive: true,
+      },
+    });
+
+    emitToTenant(tenantId, "tables:changed", { type: "table:created" });
+    return newTable;
+  }),
+
+  /* ───── GUARDAR POSICIONES DE MESAS ───── */
+
+  updateTablePositions: protectedProcedure
+  .input(
+    z.array(
+      z.object({
+        id: z.string().min(1),
+        posX: z.number().int(),
+        posY: z.number().int(),
+      })
+    )
+  )
+  .mutation(async ({ ctx, input }) => {
+    requireServiceRole(ctx.user.role);
+    const tenantId = ctx.user.tenantId;
+
+    const updates = input.map((table) =>
+      prisma.table.updateMany({
+        where: { id: table.id, tenantId },
+        data: { posX: table.posX, posY: table.posY },
+      })
+    );
+
+    await prisma.$transaction(updates);
+
+    emitToTenant(tenantId, "tables:changed", { type: "positions:updated" });
+    return { success: true };
+  }),
+
+  /* ───── ELIMINAR MESA ───── */
+
+  deleteTable: protectedProcedure
+  .input(z.object({ id: z.string().min(1) }))
+  .mutation(async ({ ctx, input }) => {
+    requireServiceRole(ctx.user.role);
+    const tenantId = ctx.user.tenantId;
+
+    // Desactivar la mesa directamente
+    await prisma.table.update({
+      where: { id: input.id, tenantId },
+      data: { isActive: false },
+    });
+
+    emitToTenant(tenantId, "tables:changed", { type: "table:deleted" });
+    return { success: true };
+  }),
+
 });
