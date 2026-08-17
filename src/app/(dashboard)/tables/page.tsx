@@ -77,15 +77,13 @@ export default function TablesPage() {
 
 
   const { data: productsData, isLoading: isLoadingProducts } = api.inventory.getProducts.useQuery();
-  const products = (productsData as Product[]) ?? [];
+  const products = useMemo(() => (productsData as Product[]) ?? [], [productsData]);
 
   const { data: categories } = api.inventory.getCategories.useQuery();
   const { data: activeOrders } = api.orders.getActiveOrders.useQuery();
-  const { data: recentPaid } = api.orders.getRecentPaid.useQuery();
 
   const invalidateOrders = () => {
     utils.orders.getActiveOrders.invalidate();
-    utils.orders.getRecentPaid.invalidate();
     utils.orders.getTables.invalidate();
   };
 
@@ -197,6 +195,11 @@ export default function TablesPage() {
     return activeOrders.filter((o) => o.tableId === selectedTable.id || o.table?.number === selectedTable.number);
   }, [activeOrders, selectedTable]);
 
+  const liveSelectedStatus = useMemo(() => {
+    if (!selectedTable) return null;
+    return rawTables?.find((t) => t.id === selectedTable.id)?.status ?? selectedTable.status;
+  }, [selectedTable, rawTables]);
+
   // ───── Logica arrastre ─────
   const handleMouseDown = (e: React.MouseEvent, tableId: string) => {
     if (!isEditMode || !canvasRef.current) return;
@@ -295,7 +298,7 @@ export default function TablesPage() {
                 <div>
                   <h2 className="text-xl font-extrabold tracking-tight">Mesa {selectedTable.number}</h2>
                   <p className="text-sm font-medium text-muted-foreground">
-                    {selectedTable.status === "FREE" ? "Mesa Libre" : "Mesa Ocupada"} • Capacidad: {selectedTable.capacity} personas
+                    {liveSelectedStatus === "FREE" ? "Mesa Libre" : "Mesa Ocupada"} • Capacidad: {selectedTable.capacity} personas
                   </p>
                 </div>
               </div>
@@ -487,11 +490,7 @@ export default function TablesPage() {
                     const pos = localPositions[table.id] || { posX: 30, posY: 40 };
                     const isSelected = selectedTable?.id === table.id;
                     const tableOrders = activeOrders?.filter((o) => o.tableId === table.id || o.table?.number === table.number) ?? [];
-                    
-                    // Verificamos si tiene ordenes activas y si todas fueron entregadas
-                    const hasActiveOrders = tableOrders.length > 0;
-                    const allDelivered = hasActiveOrders && tableOrders.every((o) => o.status === "DELIVERED");
-                    
+
                     const isOccupied = table.status === "OCCUPIED" && tableOrders.length > 0;
                     
                     // Obtenemos el nombre del primer cliente asociado (si existe)
@@ -616,7 +615,6 @@ export default function TablesPage() {
               ) : (
                 <OpenOrdersPanel
                   orders={tableActiveOrders}
-                  recent={recentPaid ?? []}
                   busy={actionBusy}
                   onPay={(id) => payMutation.mutate({ id })}
                   onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChefHat, Play, Check, PackageCheck } from "lucide-react";
+import { Bike, ChefHat, Check, PackageCheck, Play, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,28 @@ function OrderCard({
               ? ` · ${order.customerName}`
               : ""}
           </p>
+          {order.origin === "ONLINE" && (
+            <span
+              className={cn(
+                "mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                order.deliveryType === "DELIVERY"
+                  ? "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400"
+                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+              )}
+            >
+              {order.deliveryType === "DELIVERY" ? (
+                <>
+                  <Bike className="size-3" />
+                  Delivery
+                </>
+              ) : (
+                <>
+                  <Store className="size-3" />
+                  Retiro
+                </>
+              )}
+            </span>
+          )}
         </div>
         <div className="text-right">
           <p className="text-sm font-bold text-primary tabular-nums">
@@ -184,7 +206,7 @@ export default function KDSPage() {
         <ChefHat className="size-5 text-primary" />
         <h1 className="text-xl font-bold">Pantalla de Cocina</h1>
         <span className="ml-auto rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-          {orders?.length ?? 0} comandas activas
+          {orders?.filter((o) => o.status !== "DELIVERED").length ?? 0} comandas activas
         </span>
       </div>
 

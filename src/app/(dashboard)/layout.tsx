@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { canAccess, roleHome } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
@@ -40,12 +41,22 @@ export default async function DashboardLayout({
       })
     : null;
 
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const proto = headerList.get("x-forwarded-proto") ?? "http";
+  const baseUrl = host
+    ? `${proto}://${host}`
+    : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  const catalogUrl = tenant
+    ? `${baseUrl.replace(/\/+$/, "")}/c/${tenant.slug}`
+    : undefined;
+
   return (
     <DashboardShell
       navItems={navItems}
       user={{ name: session.user.name, email: session.user.email }}
       homeHref={roleHome[role]}
-      catalogHref={tenant ? `/c/${tenant.slug}` : undefined}
+      catalogUrl={catalogUrl}
     >
       {children}
       <SessionExtender />

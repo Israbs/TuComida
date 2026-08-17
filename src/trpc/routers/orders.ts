@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from "@/lib/trpc";
+import { router, protectedProcedure, publicProcedure } from "@/lib/trpc";
 import { prisma } from "@/lib/prisma";
 import { emitToTenant } from "@/lib/socket";
 import { TRPCError } from "@trpc/server";
@@ -7,16 +7,16 @@ import type { OrderStatus } from "@/generated/prisma/enums";
 
 const orderItemInput = z.object({
   productId: z.string().min(1),
-  quantity: z.number().int().min(1),
+  quantity: z.number().int().min(1).max(99),
   addons: z.array(z.object({ id: z.string().min(1) })).default([]),
   removedIngredients: z.array(z.string()).default([]),
-  notes: z.string().optional(),
+  notes: z.string().trim().max(200).optional(),
 });
 
 const createOrderSchema = z.object({
   tableId: z.string().optional(),
-  customerName: z.string().optional(),
-  notes: z.string().optional(),
+  customerName: z.string().trim().max(80).optional(),
+  notes: z.string().trim().max(300).optional(),
   payNow: z.boolean().default(false),
   items: z.array(orderItemInput).min(1, "El pedido debe tener al menos un producto"),
 });
@@ -38,6 +38,39 @@ function requireServiceRole(role: string) {
       message: "Tu rol no puede crear pedidos",
     });
   }
+}
+
+type ResolvableProduct = {
+  id: string;
+  priceCents: number;
+  addons: { id: string; name: string; priceCents: number }[];
+};
+
+function resolveItems(products: ResolvableProduct[], items: z.infer<typeof orderItemInput>[]) {
+  let totalCents = 0;
+  const resolvedItems = items.map((item) => {
+    const product = products.find((p) => p.id === item.productId)!;
+    let lineAddons = 0;
+    const snapshottedAddons: { id: string; name: string; priceCents: number }[] = [];
+    for (const a of item.addons) {
+      const addon = product.addons.find((x) => x.id === a.id);
+      if (addon) {
+        snapshottedAddons.push({
+          id: addon.id,
+          name: addon.name,
+          priceCents: addon.priceCents,
+        });
+        lineAddons += addon.priceCents;
+      }
+    }
+    totalCents += item.quantity * (product.priceCents + lineAddons);
+    return {
+      ...item,
+      unitPriceCents: product.priceCents,
+      addons: snapshottedAddons,
+    };
+  });
+  return { totalCents, resolvedItems };
 }
 
 export const ordersRouter = router({
@@ -67,30 +100,7 @@ export const ordersRouter = router({
         }
       }
 
-      let totalCents = 0;
-      const resolvedItems = input.items.map((item) => {
-        const product = products.find((p) => p.id === item.productId)!;
-        let lineAddons = 0;
-        const snapshottedAddons: { id: string; name: string; priceCents: number }[] = [];
-        for (const a of item.addons) {
-          const addon = product.addons.find((x) => x.id === a.id);
-          if (addon) {
-            snapshottedAddons.push({
-              id: addon.id,
-              name: addon.name,
-              priceCents: addon.priceCents,
-            });
-            lineAddons += addon.priceCents;
-          }
-        }
-        const lineTotal = item.quantity * (product.priceCents + lineAddons);
-        totalCents += lineTotal;
-        return {
-          ...item,
-          unitPriceCents: product.priceCents,
-          addons: snapshottedAddons,
-        };
-      });
+      const { totalCents, resolvedItems } = resolveItems(products, input.items);
 
       const order = await prisma.$transaction(async (tx) => {
         const tenant = await tx.tenant.update({
@@ -137,6 +147,161 @@ export const ordersRouter = router({
         type: "order:created",
         id: order.id,
       });
+      return order;
+    }),
+
+  /* ───── Pedido online (público) ───── */
+
+  createOnlineOrder: publicProcedure
+    .input(
+      z.object({
+        slug: z.string().min(1),
+        customerName: z.string().trim().max(80).optional(),
+        notes: z.string().trim().max(300).optional(),
+        deliveryType: z.enum(["PICKUP", "DELIVERY"]).default("PICKUP"),
+        address: z.string().trim().max(200).optional(),
+        mapsLink: z.string().trim().max(500).optional(),
+        cashGivenCents: z.number().int().min(0).optional(),
+        items: z
+          .array(orderItemInput)
+          .min(1, "El pedido debe tener al menos un producto")
+          .max(30),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (input.deliveryType === "DELIVERY" && !input.address) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Para delivery necesitamos la dirección",
+        });
+      }
+      if (input.deliveryType !== "DELIVERY") {
+        input.address = undefined;
+        input.mapsLink = undefined;
+        input.cashGivenCents = undefined;
+      }
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug: input.slug },
+        select: { id: true },
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante no encontrado" });
+      }
+
+      const productIds = [...new Set(input.items.map((i) => i.productId))];
+      const products = await prisma.product.findMany({
+        where: { tenantId: tenant.id, id: { in: productIds }, isActive: true },
+        include: { addons: { where: { isActive: true } } },
+      });
+      if (products.length !== productIds.length) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Algún producto no está disponible en este momento",
+        });
+      }
+
+      const { totalCents, resolvedItems } = resolveItems(products, input.items);
+
+      const order = await prisma.$transaction(async (tx) => {
+        const counter = await tx.tenant.update({
+          where: { id: tenant.id },
+          data: { orderCounter: { increment: 1 } },
+          select: { orderCounter: true },
+        });
+
+        const created = await tx.order.create({
+          data: {
+            tenantId: tenant.id,
+            number: counter.orderCounter,
+            userId: null,
+            customerName: input.customerName || null,
+            notes: input.notes || null,
+            origin: "ONLINE",
+            status: "PENDING",
+            totalCents,
+            deliveryType: input.deliveryType,
+            address: input.address || null,
+            mapsLink: input.mapsLink || null,
+            cashGivenCents: input.cashGivenCents ?? null,
+          },
+        });
+
+        for (const item of resolvedItems) {
+          await tx.orderItem.create({
+            data: {
+              orderId: created.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPriceCents: item.unitPriceCents,
+              notes: item.notes?.trim() || null,
+              ...(item.addons.length ? { addons: item.addons } : {}),
+              ...(item.removedIngredients.length
+                ? { removedIngredients: item.removedIngredients }
+                : {}),
+            },
+          });
+        }
+
+        return created;
+      });
+
+      emitToTenant(tenant.id, "orders:changed", {
+        type: "order:created",
+        id: order.id,
+      });
+      return {
+        id: order.id,
+        number: order.number,
+        status: order.status,
+        totalCents: order.totalCents,
+        createdAt: order.createdAt,
+        deliveryType: order.deliveryType,
+        address: order.address,
+        mapsLink: order.mapsLink,
+        cashGivenCents: order.cashGivenCents,
+      };
+    }),
+
+  getOnlineOrder: publicProcedure
+    .input(z.object({ slug: z.string().min(1), id: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug: input.slug },
+        select: { id: true },
+      });
+      if (!tenant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Restaurante no encontrado" });
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id: input.id, tenantId: tenant.id },
+        select: {
+          number: true,
+          status: true,
+          totalCents: true,
+          createdAt: true,
+          customerName: true,
+          notes: true,
+          deliveryType: true,
+          address: true,
+          mapsLink: true,
+          cashGivenCents: true,
+          items: {
+            select: {
+              quantity: true,
+              unitPriceCents: true,
+              addons: true,
+              removedIngredients: true,
+              notes: true,
+              product: { select: { name: true } },
+            },
+          },
+        },
+      });
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Pedido no encontrado" });
+      }
       return order;
     }),
 
@@ -220,7 +385,10 @@ export const ordersRouter = router({
     return prisma.order.findMany({
       where: {
         tenantId: ctx.user.tenantId,
-        status: { in: ["PENDING", "PREPARING", "READY"] },
+        OR: [
+          { status: { in: ["PENDING", "PREPARING", "READY"] } },
+          { status: "DELIVERED", paidAt: null },
+        ],
       },
       orderBy: { createdAt: "asc" },
       include: {

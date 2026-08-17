@@ -254,7 +254,12 @@ export function ProductFormDialog({
                     }}
                   >
                     <SelectTrigger id="pf-category">
-                      <SelectValue placeholder="Seleccionar categoría" />
+                      <SelectValue placeholder="Seleccionar categoría">
+                        {(value) =>
+                          categories.find((c) => c.id === value)?.name ??
+                          "Seleccionar categoría"
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((c) => (

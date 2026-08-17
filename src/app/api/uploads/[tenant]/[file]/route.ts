@@ -26,7 +26,7 @@ export async function GET(
 
   const tenantDir = path.join(UPLOADS_DIR, tenant);
   const filePath = path.join(tenantDir, file);
-  if (!filePath.startsWith(tenantDir)) {
+  if (!filePath.startsWith(tenantDir + path.sep)) {
     return new NextResponse("Not Found", { status: 404 });
   }
 

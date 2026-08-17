@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   Banknote,
+  Bike,
   Check,
   Clock,
+  MapPin,
   PackageOpen,
+  Store,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +20,6 @@ import type { inferRouterOutputs } from "@trpc/server";
 
 type OrdersRouter = inferRouterOutputs<typeof ordersRouter>;
 type ActiveOrder = OrdersRouter["getActiveOrders"][number];
-type RecentPaid = OrdersRouter["getRecentPaid"][number];
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   PENDING: {
@@ -31,6 +33,14 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   READY: {
     label: "Lista",
     className: "bg-emerald-100 text-emerald-700",
+  },
+  DELIVERED: {
+    label: "Entregado",
+    className: "bg-indigo-100 text-indigo-700",
+  },
+  CANCELLED: {
+    label: "Cancelado",
+    className: "bg-muted text-muted-foreground",
   },
 };
 
@@ -82,16 +92,60 @@ function OrderItems({ order }: { order: ActiveOrder }) {
   );
 }
 
+function DeliveryInfo({ order }: { order: ActiveOrder }) {
+  if (order.origin !== "ONLINE") return null;
+  if (order.deliveryType === "DELIVERY") {
+    return (
+      <div className="mt-3 space-y-1 rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2 text-xs dark:border-violet-500/30 dark:bg-violet-500/10">
+        <p className="flex items-center gap-1.5 font-semibold text-violet-700 dark:text-violet-400">
+          <Bike className="size-3.5" />
+          Delivery
+        </p>
+        {order.address && (
+          <p className="flex items-start gap-1.5 text-muted-foreground">
+            <MapPin className="mt-0.5 size-3 shrink-0" />
+            {order.address}
+          </p>
+        )}
+        {order.mapsLink && (
+          <a
+            href={order.mapsLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-2 hover:underline"
+          >
+            <MapPin className="size-3" />
+            Ver ubicación en Google Maps
+          </a>
+        )}
+        <p className="text-muted-foreground">
+          Efectivo
+          {order.cashGivenCents
+            ? ` · paga con ${formatPrice(order.cashGivenCents)}`
+            : " · pago exacto"}
+          {order.cashGivenCents && order.cashGivenCents > order.totalCents
+            ? ` · vuelto ${formatPrice(order.cashGivenCents - order.totalCents)}`
+            : ""}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-2.5 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-400">
+      <Store className="size-3" />
+      Retiro en el local
+    </p>
+  );
+}
+
 export function OpenOrdersPanel({
   orders,
-  recent,
   busy,
   onPay,
   onDeliver,
   onCancel,
 }: {
   orders: ActiveOrder[];
-  recent: RecentPaid[];
   busy: boolean;
   onPay: (id: string) => void;
   onDeliver: (id: string) => void;
@@ -161,6 +215,7 @@ export function OpenOrdersPanel({
 
                 <div className="px-4 py-3">
                   <OrderItems order={order} />
+                  <DeliveryInfo order={order} />
                   <div className="mt-3 flex items-center justify-between border-t pt-3">
                     <span className="text-sm text-muted-foreground">Total</span>
                     <span className="text-base font-bold">
@@ -210,35 +265,6 @@ export function OpenOrdersPanel({
           })
         )}
       </div>
-
-      {recent.length > 0 && (
-        <div className="border-t bg-card">
-          <p className="px-4 pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Cobrados hoy
-          </p>
-          <ul className="divide-y p-2">
-            {recent.map((o) => (
-              <li
-                key={o.id}
-                className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="font-medium">#{o.number}</span>
-                  <span className="truncate text-muted-foreground">
-                    {orderLabel(o)}
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="font-semibold">{formatPrice(o.totalCents)}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {o.paidAt ? formatTime(o.paidAt) : ""}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

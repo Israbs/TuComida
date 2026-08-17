@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { roleHome } from "@/lib/access";
@@ -63,7 +64,10 @@ export default async function LoginPage({
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          El registro de nuevos establecimientos estará disponible próximamente.
+          ¿Sos un nuevo restaurante?{" "}
+          <Link href="/register" className="font-medium text-primary hover:underline">
+            Creá tu cuenta
+          </Link>
         </p>
       </div>
     </div>

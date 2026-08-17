@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SidebarShare } from "@/components/sidebar-share";
 
 export type NavItem = { href: string; label: string };
 export type ShellUser = { name: string | null; email: string | null };
@@ -62,31 +63,19 @@ export function DashboardShell({
   navItems,
   user,
   homeHref,
-  catalogHref,
+  catalogUrl,
   children,
 }: {
   navItems: NavItem[];
   user: ShellUser;
   homeHref: string;
-  catalogHref?: string;
+  catalogUrl?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const catalogLink = catalogHref ? (
-    <div className="border-t border-sidebar-border p-4">
-      <Link
-        href={catalogHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-      >
-        <ExternalLink className="size-4" />
-        Ver catálogo público
-      </Link>
-    </div>
-  ) : null;
+  const shareCard = catalogUrl ? <SidebarShare url={catalogUrl} /> : null;
 
   return (
     <div className="min-h-screen">
@@ -97,7 +86,7 @@ export function DashboardShell({
           </Link>
         </div>
         <NavLinks navItems={navItems} pathname={pathname} />
-        {catalogLink}
+        {shareCard}
         <UserFooter user={user} />
       </aside>
 
@@ -127,7 +116,7 @@ export function DashboardShell({
                 pathname={pathname}
                 onNavigate={() => setMenuOpen(false)}
               />
-              {catalogLink}
+              {shareCard}
               <UserFooter user={user} />
             </SheetContent>
           </Sheet>

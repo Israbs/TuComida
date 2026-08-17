@@ -64,6 +64,7 @@ export function ScheduleEditor({
                 disabled={!d.enabled}
                 onChange={(e) => update(d.day, { start: e.target.value })}
                 className="w-auto flex-1"
+                aria-label={`${DAY_LABELS[d.day]} inicio`}
               />
               <span className="text-muted-foreground">–</span>
               <Input
@@ -72,6 +73,7 @@ export function ScheduleEditor({
                 disabled={!d.enabled}
                 onChange={(e) => update(d.day, { end: e.target.value })}
                 className="w-auto flex-1"
+                aria-label={`${DAY_LABELS[d.day]} fin`}
               />
             </div>
           </div>

@@ -312,7 +312,12 @@ export function EmployeeFormDialog({
                         }}
                       >
                         <SelectTrigger id="ef-role">
-                          <SelectValue />
+                          <SelectValue>
+                            {(value) =>
+                              ROLE_OPTIONS.find((o) => o.value === value)?.label ??
+                              "Seleccionar rol"
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {ROLE_OPTIONS.map((o) => (

@@ -2,18 +2,15 @@
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { copyToClipboard } from "@/lib/utils";
 
 export function CopyCatalogUrl({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // clipboard no disponible; ignorar
-    }
+    const ok = await copyToClipboard(url);
+    setCopied(ok);
+    if (ok) setTimeout(() => setCopied(false), 2000);
   };
 
   return (

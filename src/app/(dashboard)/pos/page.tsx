@@ -10,9 +10,10 @@ import { toast } from "sonner";
 import { useSocketEvent } from "@/hooks/use-socket-event";
 import { CartPanel } from "./cart";
 import { OpenOrdersPanel } from "./open-orders";
+import { RecentPaidPanel } from "./recent-paid";
 import { formatPrice, type CartItem, type Product } from "./types";
 
-type Tab = "order" | "open";
+type Tab = "order" | "open" | "paid";
 
 function ProductCard({
   product,
@@ -259,6 +260,7 @@ export default function POSPage() {
               [
                 { id: "order", label: "Pedido" },
                 { id: "open", label: "En curso" },
+                { id: "paid", label: "Cobrados" },
               ] as const
             ).map((t) => (
               <button
@@ -297,15 +299,16 @@ export default function POSPage() {
               onClear={() => setItems([])}
               onSubmit={(payNow) => void handleSubmit(payNow)}
             />
-          ) : (
+          ) : tab === "open" ? (
             <OpenOrdersPanel
               orders={activeOrders ?? []}
-              recent={recentPaid ?? []}
               busy={actionBusy}
               onPay={(id) => payMutation.mutate({ id })}
               onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}
               onCancel={(id) => cancelMutation.mutate({ id, status: "CANCELLED" })}
             />
+          ) : (
+            <RecentPaidPanel orders={recentPaid ?? []} />
           )}
         </aside>
       </div>

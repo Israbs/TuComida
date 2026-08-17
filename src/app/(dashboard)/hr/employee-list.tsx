@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { api } from "@/trpc/client";
+import { copyToClipboard } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -94,14 +95,14 @@ export function EmployeeList() {
     utils.hr.getEmployees.invalidate();
   });
 
-  const copyOrLink = (mailSent: boolean, link: string | undefined) => {
+  const copyOrLink = (mailSent: boolean, link: string | undefined, mailError?: string | null) => {
     if (mailSent || !link) return;
-    navigator.clipboard.writeText(link).catch(() => {});
-    toast.info("Correo no configurado", {
-      description: "Link de invitación copiado al portapapeles",
+    void copyToClipboard(link);
+    toast.error("No se pudo enviar el correo", {
+      description: mailError ?? "Link de invitación copiado al portapapeles",
       action: {
-        label: "Copiar",
-        onClick: () => navigator.clipboard.writeText(link),
+        label: "Copiar link",
+        onClick: () => void copyToClipboard(link),
       },
     });
   };
@@ -111,7 +112,7 @@ export function EmployeeList() {
       utils.hr.getEmployees.invalidate();
       setFormOpen(false);
       toast.success("Empleado creado y usuario generado");
-      copyOrLink(res.mailSent, res.inviteLink);
+      copyOrLink(res.mailSent, res.inviteLink, res.mailError);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -123,7 +124,7 @@ export function EmployeeList() {
       const reInvited = res && "reInvited" in res && res.reInvited === true;
       toast.success(reInvited ? "Empleado actualizado y reinvitado" : "Empleado actualizado");
       if (reInvited && "inviteLink" in res) {
-        copyOrLink(res.mailSent ?? false, res.inviteLink as string);
+        copyOrLink(res.mailSent ?? false, res.inviteLink as string, res.mailError as string | null | undefined);
       }
     },
     onError: (err) => toast.error(err.message),
@@ -145,8 +146,20 @@ export function EmployeeList() {
     onSuccess: (res) => {
       utils.hr.getEmployees.invalidate();
       setResending(null);
-      toast.success("Invitación reenviada");
-      copyOrLink(res.mailSent, res.inviteLink);
+      if (res.mailSent) {
+        toast.success("Invitación reenviada");
+      } else {
+        void copyToClipboard(res.inviteLink ?? "");
+        toast.error("No se pudo enviar el correo", {
+          description: res.mailError ?? "Link de invitación copiado al portapapeles",
+          action: res.inviteLink
+            ? {
+                label: "Copiar link",
+                onClick: () => void copyToClipboard(res.inviteLink ?? ""),
+              }
+            : undefined,
+        });
+      }
     },
     onError: (err) => {
       toast.error(err.message);

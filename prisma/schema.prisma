@@ -216,6 +216,10 @@ model Order {
   origin       OrderOrigin @default(POS)
   totalCents   Int         @default(0)
   notes        String?
+  deliveryType String?     @default("PICKUP")
+  address      String?
+  mapsLink     String?
+  cashGivenCents Int?
   paidAt       DateTime?
   preparingAt  DateTime?
   readyAt      DateTime?

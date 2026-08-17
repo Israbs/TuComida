@@ -51,13 +51,13 @@ async function emailInvite(user: { id: string; email: string; name: string; tena
     where: { id: user.tenantId },
   });
   const link = invitationLink(token);
-  const sent = await sendInvitationEmail({
+  const { sent, error } = await sendInvitationEmail({
     to: user.email,
     name: user.name,
     restaurant: tenant?.name ?? "tu restaurante",
     link,
   });
-  return { link, sent };
+  return { link, sent, mailError: sent ? null : (error ?? "No se pudo enviar el correo") };
 }
 
 function removeUserImage(userImage: string | null) {
@@ -135,8 +135,8 @@ export const hrRouter = router({
 
       emitToTenant(id, "hr:changed", { type: "employee:created", id: employee.id });
 
-      const { link, sent } = await emailInvite(user);
-      return { employee, mailSent: sent, inviteLink: link };
+      const { link, sent, mailError } = await emailInvite(user);
+      return { employee, mailSent: sent, mailError, inviteLink: link };
     }),
 
   updateEmployee: adminProcedure
@@ -205,9 +205,9 @@ export const hrRouter = router({
             where: { id: existing.user.id },
           });
           if (updatedUser) {
-            const { link, sent } = await emailInvite(updatedUser);
+            const { link, sent, mailError } = await emailInvite(updatedUser);
             emitToTenant(ctx.user.tenantId, "hr:changed", { type: "employee:updated", id: employee.id });
-            return { employee, mailSent: sent, inviteLink: link, reInvited: true };
+            return { employee, mailSent: sent, mailError, inviteLink: link, reInvited: true };
           }
         }
       }
@@ -274,9 +274,9 @@ export const hrRouter = router({
           message: "Este empleado no tiene usuario asociado",
         });
       }
-      const { link, sent } = await emailInvite(employee.user);
+      const { link, sent, mailError } = await emailInvite(employee.user);
       emitToTenant(ctx.user.tenantId, "hr:changed", { type: "employee:resend", id: input.id });
-      return { mailSent: sent, inviteLink: link };
+      return { mailSent: sent, mailError, inviteLink: link };
     }),
 
   getInviteUser: publicProcedure

@@ -87,7 +87,7 @@ const RESTAURANTS: Restaurant[] = [
         name: "Empanadas de Carne (x3)",
         description: "Empanadas criollas al horno con masa casera.",
         priceCents: 5400,
-        image: "https://images.unsplash.com/photo-1565302129888-6f0a8c7b5632?auto=format&fit=crop&w=800&q=70",
+        image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=70",
         ingredients: ["Carne", "Cebolla", "Huevo", "Aceituna"],
       },
       {
@@ -192,7 +192,7 @@ const RESTAURANTS: Restaurant[] = [
         name: "Tostadas con Palta",
         description: "Pan de masa madre con palta, tomate y escamas de sal.",
         priceCents: 5800,
-        image: "https://images.unsplash.com/photo-1588137378633-dea1336ce1e1?auto=format&fit=crop&w=800&q=70",
+        image: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?auto=format&fit=crop&w=800&q=70",
         ingredients: ["Pan de masa madre", "Palta", "Tomate", "Sal"],
         addons: [
           { name: "Huevo poché", priceCents: 800 },
@@ -224,7 +224,7 @@ const RESTAURANTS: Restaurant[] = [
         name: "Bagel de Salmón",
         description: "Bagel con salmón ahumado, queso crema y eneldo.",
         priceCents: 9200,
-        image: "https://images.unsplash.com/photo-1550514589-1c4e5f0f6b1b?auto=format&fit=crop&w=800&q=70",
+        image: "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?auto=format&fit=crop&w=800&q=70",
         ingredients: ["Bagel", "Salmón", "Queso crema", "Eneldo"],
       },
       {

@@ -8,12 +8,12 @@ export async function sendInvitationEmail(opts: {
   name: string;
   restaurant: string;
   link: string;
-}): Promise<boolean> {
+}): Promise<{ sent: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
     console.log(`[mail:dev] Invitación para ${opts.to}: ${opts.link}`);
-    return false;
+    return { sent: false, error: "RESEND_API_KEY no está configurada" };
   }
 
   const from = process.env.MAIL_FROM ?? "TuComida <onboarding@resend.dev>";
@@ -46,9 +46,16 @@ export async function sendInvitationEmail(opts: {
         html,
       }),
     });
-    return res.ok;
+    if (res.ok) return { sent: true };
+    const body = await res.json().catch(() => null);
+    const message =
+      typeof body?.message === "string"
+        ? body.message
+        : `Resend respondió con error ${res.status}`;
+    console.log(`[mail:fail] ${opts.to}: ${message}`);
+    return { sent: false, error: message };
   } catch {
     console.log(`[mail:feed] No se pudo enviar correo a ${opts.to}: ${opts.link}`);
-    return false;
+    return { sent: false, error: "No se pudo conectar con Resend" };
   }
 }
