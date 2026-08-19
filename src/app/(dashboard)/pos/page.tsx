@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { Search, Utensils } from "lucide-react";
+import { Search, ShoppingBag, Utensils } from "lucide-react";
 import { cn, uuid } from "@/lib/utils";
 import { api } from "@/trpc/client";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,14 @@ import { CartPanel } from "./cart";
 import { OpenOrdersPanel } from "./open-orders";
 import { RecentPaidPanel } from "./recent-paid";
 import { formatPrice, type CartItem, type Product } from "./types";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type Tab = "order" | "open" | "paid";
 
@@ -78,6 +86,8 @@ export default function POSPage() {
   const [tab, setTab] = useState<Tab>("order");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [tableId, setTableId] = useState("");
@@ -181,9 +191,71 @@ export default function POSPage() {
     }
   };
 
+  const SidePanelContent = (
+    <div className="flex h-full min-h-0 flex-col bg-card">
+      <div className="inline-flex items-center gap-1 border-b bg-muted/30 p-1.5">
+        {(
+          [
+            { id: "order", label: "Pedido" },
+            { id: "open", label: "En curso" },
+            { id: "paid", label: "Cobrados" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === t.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "order" ? (
+        <CartPanel
+          items={items}
+          tables={(tables ?? []).map((t) => ({
+            id: t.id,
+            number: t.number,
+            name: t.name,
+          }))}
+          tableId={tableId}
+          customerName={customerName}
+          orderNotes={orderNotes}
+          submitting={creating}
+          onTableChange={setTableId}
+          onCustomerChange={setCustomerName}
+          onNotesChange={setOrderNotes}
+          onUpdateItem={updateItem}
+          onRemoveItem={removeItem}
+          onClear={() => setItems([])}
+          onSubmit={(payNow) => void handleSubmit(payNow)}
+        />
+      ) : tab === "open" ? (
+        <OpenOrdersPanel
+          orders={activeOrders ?? []}
+          busy={actionBusy}
+          onPay={(id) => payMutation.mutate({ id })}
+          onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}
+          onCancel={(id) => cancelMutation.mutate({ id, status: "CANCELLED" })}
+        />
+      ) : (
+        <RecentPaidPanel orders={recentPaid ?? []} />
+      )}
+    </div>
+  );
+
+  const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+
   return (
-    <div className="flex h-[calc(100dvh-5.5rem)] flex-col overflow-hidden rounded-2xl border bg-background lg:h-[calc(100dvh-6.5rem)]">
-      <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:flex-row">
+    <div className="flex h-[calc(100dvh-5.5rem)] flex-col overflow-hidden rounded-2xl border bg-background md:h-[calc(100dvh-6.5rem)]">
+      <div className="flex flex-col md:min-h-0 md:flex-1 md:flex-row">
         {/* Productos */}
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="border-b p-3">
@@ -253,64 +325,38 @@ export default function POSPage() {
           </div>
         </div>
 
-        {/* Panel derecho */}
-        <aside className="flex min-h-0 flex-col border-t bg-card lg:w-[400px] lg:shrink-0 lg:border-t-0 lg:border-l">
-          <div className="inline-flex items-center gap-1 border-b bg-muted/30 p-1.5">
-            {(
-              [
-                { id: "order", label: "Pedido" },
-                { id: "open", label: "En curso" },
-                { id: "paid", label: "Cobrados" },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                  tab === t.id
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {tab === "order" ? (  
-            <CartPanel
-              items={items}
-              tables={(tables ?? []).map((t) => ({
-                id: t.id,
-                number: t.number,
-                name: t.name,
-              }))}
-              tableId={tableId}
-              customerName={customerName}
-              orderNotes={orderNotes}
-              submitting={creating}
-              onTableChange={setTableId}
-              onCustomerChange={setCustomerName}
-              onNotesChange={setOrderNotes}
-              onUpdateItem={updateItem}
-              onRemoveItem={removeItem}
-              onClear={() => setItems([])}
-              onSubmit={(payNow) => void handleSubmit(payNow)}
-            />
-          ) : tab === "open" ? (
-            <OpenOrdersPanel
-              orders={activeOrders ?? []}
-              busy={actionBusy}
-              onPay={(id) => payMutation.mutate({ id })}
-              onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}
-              onCancel={(id) => cancelMutation.mutate({ id, status: "CANCELLED" })}
-            />
-          ) : (
-            <RecentPaidPanel orders={recentPaid ?? []} />
-          )}
+        {/* Panel derecho para escritorio */}
+        <aside className="hidden min-h-0 flex-col border-l bg-card md:flex md:w-[320px] lg:w-[400px] md:shrink-0">
+          {SidePanelContent}
         </aside>
+
+        {/* Panel derecho */}
+        <div className="md:hidden">
+          <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+            <DialogTrigger className="fixed bottom-6 right-6 z-40 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-2xl transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            
+              <ShoppingBag className="mr-2 size-5" />
+              Panel de Control
+              {totalCartCount > 0 && (
+                <span className="ml-2 rounded-full bg-primary-foreground text-primary px-2 py-0.5 text-xs font-bold">
+                  {totalCartCount}
+                </span>
+
+              )}
+
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] sm:max-w-[500px] h-[85vh] p-0 overflow-hidden flex flex-col">
+              <DialogHeader className="p-4 border-b pb-2">
+                <DialogTitle className="text-center text-base font-semibold">
+                  Gestión de Compras y Pedidos
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-hidden">
+                {SidePanelContent}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </div>
   );

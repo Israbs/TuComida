@@ -195,7 +195,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-white/70 hover:text-white sm:block"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-white/70 hover:text-white sm:block"
             >
               Iniciar sesión
             </Link>
@@ -226,9 +226,9 @@ export default function LandingPage() {
             Diseñado para restaurantes, cafés y heladerías
           </p>
           <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-6xl">
-            Tu restaurante,{" "}
+            Tu Restaurante,{" "}
             <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">
-              en una sola pantalla
+              en una Sola Pantalla
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg text-white/70">

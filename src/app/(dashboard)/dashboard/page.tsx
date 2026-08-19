@@ -407,7 +407,7 @@ export default async function DashboardPage() {
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
             </span>
-            En vivo
+            En Vivo
           </span>
           {plan && (
             <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">

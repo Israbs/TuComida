@@ -12,7 +12,8 @@ import {
   Utensils, 
   ListPlus, 
   Pencil,
-  ArrowLeft
+  ArrowLeft,
+  ShoppingBag,
 } from "lucide-react";
 import { cn, uuid } from "@/lib/utils";
 import { api } from "@/trpc/client";
@@ -25,6 +26,14 @@ import { CartPanel } from "../pos/cart";
 import { OpenOrdersPanel } from "../pos/open-orders";
 import { formatPrice, type CartItem, type Product } from "../pos/types";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 type FilterStatus = "all" | "free" | "occupied";
 type Tab = "order" | "open";
 
@@ -36,7 +45,7 @@ interface TableItem {
   posX: number;
   posY: number;
   status: "FREE" | "OCCUPIED";
-  currentTotal?: string;
+  currentTotal?: string;  
   activeOrderIds?: string[];
 }
 
@@ -74,7 +83,6 @@ export default function TablesPage() {
     },
     onError: (err) => toast.error(err.message),
   });
-
 
   const { data: productsData, isLoading: isLoadingProducts } = api.inventory.getProducts.useQuery();
   const products = useMemo(() => (productsData as Product[]) ?? [], [productsData]);
@@ -132,7 +140,6 @@ export default function TablesPage() {
     cancelMutation.isPending ||
     createMutation.isPending;
 
-  // ───── Estados ─────
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
@@ -145,10 +152,14 @@ export default function TablesPage() {
   const draggingTableId = useRef<string | null>(null);
   const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // ───── Estados carrito ─────
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  // Estados carrito
   const [items, setItems] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  
+  const totalCartCount = useMemo(() => items.reduce((acc, item) => acc + item.quantity, 0), [items]);
 
   const calculateGridPosition = (index: number) => {
     const columns = 4;
@@ -200,7 +211,21 @@ export default function TablesPage() {
     return rawTables?.find((t) => t.id === selectedTable.id)?.status ?? selectedTable.status;
   }, [selectedTable, rawTables]);
 
-  // ───── Logica arrastre ─────
+  // Logica de arrastre universal (Mouse + Touch)
+  const updatePosition = (clientX: number, clientY: number) => {
+    if (!draggingTableId.current || !canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    let newX = Math.round(clientX - canvasRect.left - dragOffset.current.x);
+    let newY = Math.round(clientY - canvasRect.top - dragOffset.current.y);
+    newX = Math.max(10, Math.min(newX, canvasRect.width - 120));
+    newY = Math.max(10, Math.min(newY, canvasRect.height - 120));
+    setLocalPositions((prev) => ({
+      ...prev,
+      [draggingTableId.current!]: { posX: newX, posY: newY },
+    }));
+  };
+
+  // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent, tableId: string) => {
     if (!isEditMode || !canvasRef.current) return;
     draggingTableId.current = tableId;
@@ -215,22 +240,42 @@ export default function TablesPage() {
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!draggingTableId.current || !canvasRef.current) return;
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    let newX = Math.round(e.clientX - canvasRect.left - dragOffset.current.x);
-    let newY = Math.round(e.clientY - canvasRect.top - dragOffset.current.y);
-    newX = Math.max(10, Math.min(newX, canvasRect.width - 120));
-    newY = Math.max(10, Math.min(newY, canvasRect.height - 120));
-    setLocalPositions((prev) => ({
-      ...prev,
-      [draggingTableId.current!]: { posX: newX, posY: newY },
-    }));
+    updatePosition(e.clientX, e.clientY);
   };
 
   const handleMouseUp = () => {
     draggingTableId.current = null;
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  // Touch Handlers para moviles
+  const handleTouchStart = (e: React.TouchEvent, tableId: string) => {
+    if (!isEditMode || !canvasRef.current || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    draggingTableId.current = tableId;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const currentPos = localPositions[tableId] || { posX: 0, posY: 0 };
+    dragOffset.current = {
+      x: touch.clientX - canvasRect.left - currentPos.posX,
+      y: touch.clientY - canvasRect.top - currentPos.posY,
+    };
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (draggingTableId.current && e.touches.length > 0) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      updatePosition(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    draggingTableId.current = null;
+    window.removeEventListener("touchmove", handleTouchMove);
+    window.removeEventListener("touchend", handleTouchEnd);
   };
 
   // ───── Operaciones carrito ─────
@@ -272,6 +317,82 @@ export default function TablesPage() {
       })),
     });
   };
+
+  const SidePanelContent = selectedTable ? (
+    <div className="flex h-full flex-col">
+      <div className="inline-flex items-center gap-1 border-b bg-muted/30 p-1.5 shrink-0">
+        {(
+          [
+            { id: "order", label: "Pedido" },
+            { id: "open", label: "En curso" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+              tab === t.id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {t.label}
+            {t.id === "open" && tableActiveOrders.length > 0 && (
+              <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                {tableActiveOrders.length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        {tab === "order" ? (
+          <CartPanel
+            items={items}
+            tables={(rawTables ?? []).map((t) => ({
+              id: t.id,
+              number: t.number,
+              name: t.name,
+            }))}
+            tableId={selectedTable.id}
+            customerName={customerName}
+            orderNotes={orderNotes}
+            submitting={createMutation.isPending}
+            onTableChange={(id) => {
+              const newTable = rawTables?.find((t) => t.id === id);
+              if (newTable) setSelectedTable(newTable as TableItem);
+            }}
+            onCustomerChange={setCustomerName}
+            onNotesChange={setOrderNotes}
+            onUpdateItem={updateCartItem}
+            onRemoveItem={removeCartItem}
+            onClear={() => setItems([])}
+            onSubmit={(payNow) => void handleSubmitOrder(payNow)}
+            hideTableSelect={true}
+          />
+        ) : (
+          <OpenOrdersPanel
+            orders={tableActiveOrders}
+            busy={actionBusy}
+            onPay={(id) => payMutation.mutate({ id })}
+            onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}
+            onCancel={(id) => cancelMutation.mutate({ id, status: "CANCELLED" })}
+          />
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="flex h-full flex-col items-center justify-center text-center p-6 text-muted-foreground">
+      <div className="bg-muted p-4 rounded-full mb-4">
+        <Utensils className="size-8 opacity-60" />
+      </div>
+      <h3 className="font-bold text-lg text-foreground mb-1">Selecciona una Mesa</h3>
+      <p className="text-sm">Toca una mesa en el plano para asociar el pedido directamente y comenzar a cargar productos.</p>
+    </div>
+  );
 
   return (
     <div className="flex h-[calc(100dvh-5.5rem)] flex-col overflow-hidden rounded-2xl border bg-background lg:h-[calc(100dvh-6.5rem)]">
@@ -429,13 +550,13 @@ export default function TablesPage() {
                   {!isEditMode ? (
                     <>
                       <Button 
-                      size="sm" 
-                      className="gap-1.5" 
-                      onClick={() => {
-                        const nextNumber = (rawTables?.length ?? 0) + 1;
-                        createTableMutation.mutate({ number: nextNumber });
-                      }}
-                      disabled={createTableMutation.isPending}
+                        size="sm" 
+                        className="gap-1.5" 
+                        onClick={() => {
+                          const nextNumber = (rawTables?.length ?? 0) + 1;
+                          createTableMutation.mutate({ number: nextNumber });
+                        }}
+                        disabled={createTableMutation.isPending}
                       >
                         <Plus className="size-4" /> Nueva Mesa
                       </Button>
@@ -443,7 +564,6 @@ export default function TablesPage() {
                         <Pencil className="size-4" /> Editar Plano
                       </Button>
                     </>
-                    
                   ) : (
                     <>
                       <Button
@@ -471,160 +591,131 @@ export default function TablesPage() {
               </div>
 
               {/* Canvas interactivo */}
-              <div ref={canvasRef} className="relative min-h-[500px] flex-1 overflow-auto bg-[#2d1b18] bg-[url('/fondo-madera.jpg')] bg-cover bg-center p-6 shadow-inner select-none">
-                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-                
-                {isLoadingTables ? (
-                  <div className="relative z-10 grid grid-cols-3 gap-6 p-8 md:grid-cols-4 lg:grid-cols-5">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="aspect-square animate-pulse rounded-xl bg-white/10" />
-                    ))}
-                  </div>
-                ) : filteredTables.length === 0 ? (
-                  <div className="relative z-10 flex h-full flex-col items-center justify-center text-white/80">
-                    <Utensils className="size-10 mb-2 opacity-60" />
-                    <p className="text-sm font-medium">No hay mesas disponibles.</p>
-                  </div>
-                ) : (
-                  filteredTables.map((table) => {
-                    const pos = localPositions[table.id] || { posX: 30, posY: 40 };
-                    const isSelected = selectedTable?.id === table.id;
-                    const tableOrders = activeOrders?.filter((o) => o.tableId === table.id || o.table?.number === table.number) ?? [];
+              <div ref={canvasRef} className="relative min-h-[500px] flex-1 overflow-auto select-none bg-[#2d1b18]">
+                <div className="relative min-w-[900px] min-h-full h-full bg-[url('/fondo-madera.jpg')] bg-repeat bg-cover bg-center p-6 shadow-inner">
+                  <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                  
+                  {isLoadingTables ? (
+                    <div className="relative z-10 grid grid-cols-3 gap-6 p-8 md:grid-cols-4 lg:grid-cols-5">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="aspect-square animate-pulse rounded-xl bg-white/10" />
+                      ))}
+                    </div>
+                  ) : filteredTables.length === 0 ? (
+                    <div className="relative z-10 flex h-full flex-col items-center justify-center text-white/80 min-h-[400px]">
+                      <Utensils className="size-10 mb-2 opacity-60" />
+                      <p className="text-sm font-medium">No hay mesas disponibles.</p>
+                    </div>
+                  ) : (
+                    filteredTables.map((table) => {
+                      const pos = localPositions[table.id] || { posX: 30, posY: 40 };
+                      const isSelected = selectedTable?.id === table.id;
+                      const tableOrders = activeOrders?.filter((o) => o.tableId === table.id || o.table?.number === table.number) ?? [];
+                      const isOccupied = table.status === "OCCUPIED" && tableOrders.length > 0;
+                      const customerName = tableOrders.find((o) => o.customerName)?.customerName;
 
-                    const isOccupied = table.status === "OCCUPIED" && tableOrders.length > 0;
-                    
-                    // Obtenemos el nombre del primer cliente asociado (si existe)
-                    const customerName = tableOrders.find((o) => o.customerName)?.customerName;
+                      return (
+                        <div
+                          key={table.id}
+                          onMouseDown={(e) => handleMouseDown(e, table.id)}
+                          onTouchStart={(e) => handleTouchStart(e, table.id)}
+                          onClick={() => !isEditMode && setSelectedTable(table as TableItem)}
+                          style={{ 
+                            position: "absolute", 
+                            left: `${pos.posX}px`, 
+                            top: `${pos.posY}px`,
+                            touchAction: isEditMode ? "none" : "auto"
+                          }}
+                          className={cn(
+                            "group relative flex aspect-square w-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 p-1.5 shadow-md transition-all",
+                            isOccupied 
+                              ? "bg-rose-950/40 border-rose-500/70 text-rose-200" 
+                              : "bg-emerald-950/40 border-emerald-500/70 text-emerald-200",
+                            isSelected && "ring-4 ring-amber-400 ring-offset-2 ring-offset-black",
+                            isEditMode && "cursor-grab active:cursor-grabbing border-dashed border-amber-400 z-30"
+                          )}
+                        >
+                          <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
+                            <Image src="/mesa.jpg" alt={`Mesa ${table.number}`} fill className="object-cover opacity-60 group-hover:scale-105 transition-transform" />
+                            <div className={cn("absolute inset-0", isOccupied ? "bg-rose-950/40" : "bg-emerald-950/40")} />
+                          </div>
+                          <div className="relative z-10 flex size-7 items-center justify-center rounded-lg bg-white/90 text-zinc-800 shadow-sm backdrop-blur pointer-events-none">
+                            {isEditMode ? <Move className="size-4" /> : <ListPlus className="size-4" />}
+                          </div>
+                          
+                          {/* Indicador de numero, capacidad y cliente */}
+                          <div className="absolute -bottom-4 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded bg-zinc-900/95 px-2 py-0.5 text-[10px] font-semibold text-white shadow backdrop-blur border border-white/10 pointer-events-none flex flex-col items-center">
+                            <span>Mesa {table.number} | {table.capacity}p</span>
+                            {customerName && (
+                              <span className="text-[9px] text-amber-400 truncate max-w-[100px]">
+                                {customerName}
+                              </span>
+                            )}
+                          </div>
 
-                    return (
-                      <div
-                        key={table.id}
-                        onMouseDown={(e) => handleMouseDown(e, table.id)}
-                        onClick={() => !isEditMode && setSelectedTable(table as TableItem)}
-                        style={{ position: "absolute", left: `${pos.posX}px`, top: `${pos.posY}px` }}
-                        className={cn(
-                          "group relative flex aspect-square w-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 p-1.5 shadow-md transition-all",
-                          isOccupied 
-                            ? "bg-rose-950/40 border-rose-500/70 text-rose-200" 
-                            : "bg-emerald-950/40 border-emerald-500/70 text-emerald-200",
-                          isSelected && "ring-4 ring-amber-400 ring-offset-2 ring-offset-black",
-                          isEditMode && "cursor-grab active:cursor-grabbing border-dashed border-amber-400 z-30"
-                        )}
-                      >
-                        <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
-                          <Image src="/mesa.jpg" alt={`Mesa ${table.number}`} fill className="object-cover opacity-60 group-hover:scale-105 transition-transform" />
-                          <div className={cn("absolute inset-0", isOccupied ? "bg-rose-950/40" : "bg-emerald-950/40")} />
-                        </div>
-                        <div className="relative z-10 flex size-7 items-center justify-center rounded-lg bg-white/90 text-zinc-800 shadow-sm backdrop-blur pointer-events-none">
-                          {isEditMode ? <Move className="size-4" /> : <ListPlus className="size-4" />}
-                        </div>
-                        
-                        {/* Indicador de numero, capacidad y nombre del cliente */}
-                        <div className="absolute -bottom-4 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded bg-zinc-900/95 px-2 py-0.5 text-[10px] font-semibold text-white shadow backdrop-blur border border-white/10 pointer-events-none flex flex-col items-center">
-                          <span>Mesa {table.number} | {table.capacity}p</span>
-                          {customerName && (
-                            <span className="text-[9px] text-amber-400 truncate max-w-[100px]">
-                              {customerName}
-                            </span>
+                          {isEditMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); if (confirm("¿Eliminar mesa?")) deleteTableMutation.mutate({ id: table.id }); }}
+                              onTouchEnd={(e) => { e.stopPropagation(); if (confirm("¿Eliminar mesa?")) deleteTableMutation.mutate({ id: table.id }); }}
+                              className="absolute -top-2 -right-2 z-40 flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow hover:scale-110 transition-transform"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
                           )}
                         </div>
-
-                        {isEditMode && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); if (confirm("¿Eliminar mesa?")) deleteTableMutation.mutate({ id: table.id }); }}
-                            className="absolute -top-2 -right-2 z-40 flex size-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow hover:scale-110 transition-transform"
-                          >
-                            <Trash2 className="size-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </div>
+
+              {/* Cartel para seleccion de mesa */}
+              {!selectedTable && !isEditMode && (
+                <div className="flex flex-col items-center justify-center border-t bg-card p-6 text-center text-muted-foreground lg:hidden">
+                  <div className="mb-3 rounded-full bg-muted p-4">
+                    <Utensils className="size-8 opacity-60" />
+                  </div>
+                  <h3 className="mb-1 text-base font-bold text-foreground">Mesa no seleccionada</h3>
+                  <p className="max-w-xs text-xs">
+                    Selecciona una mesa del plano arriba para cargar un pedido o gestionar las órdenes activas.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        <aside className="flex min-h-0 flex-col border-t bg-card lg:w-[420px] lg:shrink-0 lg:border-t-0 lg:border-l">
-          {!selectedTable ? (
-            <div className="flex h-full flex-col items-center justify-center text-center p-6 text-muted-foreground">
-              <div className="bg-muted p-4 rounded-full mb-4">
-                <Utensils className="size-8 opacity-60" />
-              </div>
-              <h3 className="font-bold text-lg text-foreground mb-1">Selecciona una Mesa</h3>
-              <p className="text-sm">Toca una mesa en el plano para asociar el pedido directamente y comenzar a cargar productos.</p>
-            </div>
-          ) : (
-            <>
-              {/* Tabs de Seleccion */}
-              <div className="inline-flex items-center gap-1 border-b bg-muted/30 p-1.5">
-                {(
-                  [
-                    { id: "order", label: "Pedido" },
-                    { id: "open", label: "En curso" },
-                  ] as const
-                ).map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTab(t.id)}
-                    className={cn(
-                      "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                      tab === t.id
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {t.label}
-                    {t.id === "open" && tableActiveOrders.length > 0 && (
-                      <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                        {tableActiveOrders.length}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Render de Paneles Importados */}
-              {tab === "order" ? (
-                <CartPanel
-                  items={items}
-                  tables={(rawTables ?? []).map((t) => ({
-                    id: t.id,
-                    number: t.number,
-                    name: t.name,
-                  }))}
-                  tableId={selectedTable.id}
-                  customerName={customerName}
-                  orderNotes={orderNotes}
-                  submitting={createMutation.isPending}
-                  onTableChange={(id) => {
-                    const newTable = rawTables?.find((t) => t.id === id);
-                    if (newTable) setSelectedTable(newTable as TableItem);
-                  }}
-                  onCustomerChange={setCustomerName}
-                  onNotesChange={setOrderNotes}
-                  onUpdateItem={updateCartItem}
-                  onRemoveItem={removeCartItem}
-                  onClear={() => setItems([])}
-                  onSubmit={(payNow) => void handleSubmitOrder(payNow)}
-                  hideTableSelect = {true}
-                />
-              ) : (
-                <OpenOrdersPanel
-                  orders={tableActiveOrders}
-                  busy={actionBusy}
-                  onPay={(id) => payMutation.mutate({ id })}
-                  onDeliver={(id) => deliverMutation.mutate({ id, status: "DELIVERED" })}
-                  onCancel={(id) => cancelMutation.mutate({ id, status: "CANCELLED" })}
-                />
-              )}
-            </>
-          )}
+        {/* Panel para pantallas escritorio */}
+        <aside className="hidden lg:flex min-h-0 flex-col border-t bg-card lg:w-[420px] lg:shrink-0 lg:border-t-0 lg:border-l">
+          {SidePanelContent}
         </aside>
 
+        {selectedTable && !isEditMode && (
+          <div className="lg:hidden">
+            <Dialog open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+              <DialogTrigger className="fixed bottom-6 right-6 z-40 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-2xl transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ShoppingBag className="mr-2 size-5" />
+                Panel de Control
+                {totalCartCount > 0 && (
+                  <span className="ml-2 rounded-full bg-primary-foreground text-primary px-2 py-0.5 text-xs font-bold">
+                    {totalCartCount}
+                  </span>
+                )}
+              </DialogTrigger>
+              <DialogContent className="max-w-[90vw] sm:max-w-[500px] h-[85vh] p-0 overflow-hidden flex flex-col">
+                <DialogHeader className="p-4 border-b pb-2 shrink-0">
+                  <DialogTitle className="text-center text-base font-semibold">
+                    Gestión de Compras y Pedidos
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-hidden">
+                  {SidePanelContent}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
     </div>
   );
